@@ -133,3 +133,83 @@ The actor model is a programming model for concurrency in a single process. Rath
 
 We have to encode it as some kind of self-contained sequence of bytes. Since a pointer wouldn’t make sense to any other process, this With the exception of some special cases, such as certain memory-mapped files or when operating directly on compressed data.
 
+## Chapter 5 Replication.
+
+#### 1. What is replication and why you might want to replicate data?
+
+Replication means keeping a copy of the same data on multiple machines that are connected via a network.
+
+• To keep data geographically close to your users (and thus reduce latency)
+• To allow the system to continue working even if some of its parts have failed (and thus increase availability)
+• To scale out the number of machines that can serve read queries (and thus increase read throughput)
+
+#### 2. How works the leader-based replication?
+
+1. One of the replicas is designated the leader (also known as master or primary). When clients want to write to the database, they must send their requests to the leader, which first writes the new data to its local storage.
+
+2. The other replicas are known as followers (read replicas, slaves, secondaries, or hot standbys). Whenever the leader writes new data to its local storage, it also sends the data change to all of its followers as part of a replication log or change stream. Each follower takes the log from the leader and updates its local copy of the database accordingly, by applying all writes in the same order as they were processed on the leader.
+
+3. When a client wants to read from the database, it can query either the leader or any of the followers. However, writes are only accepted on the leader (the followers are read-only from the client’s point of view).
+
+#### 3. differences between Leader-based replication synchronous and asynchronous?
+
+In the synchronous replication the leader wait for the confirmation of the follower to say that was a success process and the asynchronous the leader sends the message, but doesn’t wait for a response from the follower.
+
+#### 4. Implementation of Replication Logs.
+
+- Statement-based replication
+- Write-ahead log (WAL) shipping
+- Logical (row-based) log replication
+- Trigger-based replication
+
+#### 5. What are the Use Cases for Multi-Leader Replication?
+
+- Multi-datacenter operation
+- Clients with offline operation
+- Collaborative editing
+
+## Chapter 6 Partitioning.
+
+#### 1. What is the main reason for wanting to partition data?
+
+Scalability
+
+#### 2. Partition and replication
+
+Partitioning is usually combined with replication so that copies of each partition are stored on multiple nodes. This means that, even though each record belongs to exactly one partition, it may still be stored on several different nodes for fault tolerance.
+
+#### 3. How do you decide which records to store on which nodes?
+
+#### 4. skew in partition
+
+If the partitioning is unfair, so that some partitions have more data or queries than others, we call it skewed. The presence of skew makes partitioning much less effective. In an extreme case, all the load could end up on one partition, so 9 out of 10 nodes are idle and your bottleneck is the single busy node. A partition with disproportion‐ ately high load is called a hot spot.
+The simplest approach for avoiding hot spots would be to assign records to nodes randomly. That would distribute the data quite evenly across the nodes, but it has a big disadvantage: when you’re trying to read a particular item, you have no way of knowing which node it is on, so you have to query all nodes in parallel.
+
+
+
+## Chapter 7 Transaction.
+
+#### 1. What means ACID?
+
+The safety guarantees provided by transactions are often described by the well- known acronym ACID, which stands for Atomicity, Consistency, Isolation, and Dura‐ bility.
+
+Atomicity: In general, atomic refers to something that cannot be broken down into smaller parts.
+
+Consistency: It is the property that ensures that only what can be finished will return. Therefore, operations are executed that will not break integrity rules and guidelines. from the database.
+
+Isolation: Isolation in the sense of ACID means that concurrently executing transactions are isolated from each other: they cannot step on each other’s toes.
+
+Durability: Durability is the promise that once a transaction has com‐ mitted successfully, any data it has written will not be forgotten, even if there is a hardware fault or the database crashes.
+
+#### 2. Why the Concurrency bugs are hard to find by testing?
+
+Because such bugs are only triggered when you get unlucky with the timing. Such timing issues might occur very rarely, and are usually difficult to reproduce. Concurrency is also very difficult to reason about, especially in a large application where you don’t necessarily know which other pieces of code are accessing the database.
+
+#### 3. what is called dirty read?
+
+Imagine a transaction has written some data to the database, but the transaction has not yet committed or aborted. Can another transaction see that uncommitted data? If yes, that is called a dirty read
+
+#### 4. what is called dirty writes?
+
+One client overwrites data that another client has written, but not yet committed. Almost all transaction implementations prevent dirty writes.
+
